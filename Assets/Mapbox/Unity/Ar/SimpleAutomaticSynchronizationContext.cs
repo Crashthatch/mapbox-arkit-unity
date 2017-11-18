@@ -100,6 +100,13 @@
 				//Initialize previous AR / GPS vectors
 				_previousArNode = arNode;
 				_previousLocationPosition = locationPosition;
+				
+				//We have nothing to compare to. Trust GPS 100%.
+				var alignment = new Alignment();
+				alignment.Rotation = -1*location.Heading;
+				alignment.Position = -1*locationPosition;
+				Unity.Utilities.Console.Instance.Log("Sending Alignment (purely from GPS) with Rotation:" + alignment.Rotation + " Position:" + alignment.Position, "orange");
+				OnAlignmentAvailable(alignment);
 			}
 		}
 
@@ -131,18 +138,16 @@
 			// Add the weighted delta.
 			_position = (delta * bias) + originOffset;
 
-#if UNITY_EDITOR
-			Debug.Log("AR Vector: " + _currentArVector);
-			Debug.Log("GPS Vector: " + _currentAbsoluteGpsVector);
-			Debug.Log("HEADING:" + rotation);
-			Debug.Log("Relative GPS Vector: " + relativeGpsVector);
-			Debug.Log("BIAS: " + bias);
-			Debug.Log("DISTANCE: " + deltaDistance);
-			Debug.Log("OFFSET: " + originOffset);
-			Debug.Log("BIASED DELTA: " + delta);
-			Debug.Log("OFFSET: " + _position);
-#endif
-			Unity.Utilities.Console.Instance.Log(string.Format("Offset: {0},\tHeading: {1},\tDisance: {2},\tBias: {3}",
+			Unity.Utilities.Console.Instance.Log("AR Vector: " + _currentArVector, "white");
+			Unity.Utilities.Console.Instance.Log("GPS Vector: " + _currentAbsoluteGpsVector, "white");
+			Unity.Utilities.Console.Instance.Log("HEADING (angle between GPSVector and AR Vector):" + rotation, "white");
+			Unity.Utilities.Console.Instance.Log("Relative GPS Vector (GPS Vector, rotated to be in the direction of AR movement): " + relativeGpsVector, "white");
+			Unity.Utilities.Console.Instance.Log("BIAS: " + bias, "white");
+			Unity.Utilities.Console.Instance.Log("DISTANCE (percieved error between AR and GPS since last alignment): " + deltaDistance, "white");
+			Unity.Utilities.Console.Instance.Log("ORIGIN OFFSET: " + originOffset, "white");
+			Unity.Utilities.Console.Instance.Log("BIASED DELTA: " + delta, "white");
+			Unity.Utilities.Console.Instance.Log("OFFSET: " + _position, "white");
+			Unity.Utilities.Console.Instance.Log(string.Format("Offset: {0},\tHeading: {1},\tDistance: {2},\tBias: {3}",
 															   _position, _rotation, deltaDistance, bias), "orange");
 
 			var alignment = new Alignment();

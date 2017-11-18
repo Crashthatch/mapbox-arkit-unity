@@ -20,7 +20,7 @@
 
 		void LocationProvider_OnLocationUpdated(Location location)
 		{
-			Debug.Log("InitializeMapWithLocationProvider: " + "WTF");
+			Debug.Log("InitializeMapWithLocationProvider: " + location.LatitudeLongitude +" Heading: "+location.Heading);
 			_locationProvider.OnLocationUpdated -= LocationProvider_OnLocationUpdated;
 			_map.Initialize(location.LatitudeLongitude, _map.Zoom);
 		}

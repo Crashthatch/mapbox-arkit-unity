@@ -34,6 +34,9 @@ namespace Mapbox.Unity.Ar
 
 		float _lastHeading;
 		float _lastHeight;
+		bool _mapIsInitialized = false;
+		Location _locationProvidedWhileLoading;
+		bool _locationUpdatePending;
 
 		ILocationProvider _locationProvider;
 
@@ -45,11 +48,7 @@ namespace Mapbox.Unity.Ar
 			{
 				if (_locationProvider == null)
 				{
-#if UNITY_EDITOR
-					_locationProvider = LocationProviderFactory.Instance.TransformLocationProvider;
-#else
 					_locationProvider = LocationProviderFactory.Instance.DefaultLocationProvider;
-#endif
 				}
 
 				return _locationProvider;
@@ -76,7 +75,8 @@ namespace Mapbox.Unity.Ar
 			_synchronizationContext.SynchronizationBias = _synchronizationBias;
 			_synchronizationContext.OnAlignmentAvailable += SynchronizationContext_OnAlignmentAvailable;
 			_map.OnInitialized += Map_OnInitialized;
-
+			LocationProvider.OnLocationUpdated += LocationProvider_OnLocationUpdated;
+			Debug.Log("SimpleAutomaticSynchronizationContextBehaviour registered LocationProvider_OnLocationUpdated");
 
 			// TODO: not available in ARInterface yet?!
 			//UnityARSessionNativeInterface.ARSessionTrackingChangedEvent += UnityARSessionNativeInterface_ARSessionTrackingChanged;
@@ -92,10 +92,17 @@ namespace Mapbox.Unity.Ar
 
 		void Map_OnInitialized()
 		{
+			Debug.Log("Map initialized. SimpleAutomaticSynchronizationContextBehaviour starting to listen to LocationProvider.OnLocationUpdated...");
 			_map.OnInitialized -= Map_OnInitialized;
+			_mapIsInitialized = true;
 
-			// We don't want location updates until we have a map, otherwise our conversion will fail.
-			LocationProvider.OnLocationUpdated += LocationProvider_OnLocationUpdated;
+			//Simulate a location update with the location stored while the map was loading.
+			if (_locationUpdatePending)
+			{
+				Debug.Log("Map initialized. Sending pending location update...");
+				LocationProvider_OnLocationUpdated(_locationProvidedWhileLoading);
+			}
+
 		}
 
 		void PlaneAddedHandler(BoundedPlane plane)
@@ -111,17 +118,30 @@ namespace Mapbox.Unity.Ar
 
 		void LocationProvider_OnLocationUpdated(Location location)
 		{
-			if (location.IsLocationUpdated)
+			Debug.Log("SimpleAutomaticSynchronizationContextBehaviour.LocationProvider_OnLocationUpdated called");
+			// We don't want location updates until we have a map, otherwise our conversion will fail.
+			if (_mapIsInitialized)
 			{
-				var latitudeLongitude = location.LatitudeLongitude;
-				Unity.Utilities.Console.Instance.Log(string.Format("Location: {0},{1}\tAccuracy: {2}\tHeading: {3}",
-																   latitudeLongitude.x, latitudeLongitude.y, location.Accuracy, location.Heading), "lightblue");
+				if (location.IsLocationUpdated)
+				{
+					var latitudeLongitude = location.LatitudeLongitude;
 
-				var position = Conversions.GeoToWorldPosition(latitudeLongitude,
-															 	_map.CenterMercator,
-															 	_map.WorldRelativeScale).ToVector3xz();
+					var position = Conversions.GeoToWorldPosition(latitudeLongitude,
+																	 _map.CenterMercator,
+																	 _map.WorldRelativeScale).ToVector3xz();
 
-				_synchronizationContext.AddSynchronizationNodes(location, position, _arPositionReference.localPosition);
+					Unity.Utilities.Console.Instance.Log(string.Format("Location: {0},{1}\tAccuracy: {2}\tHeading: {3}\tPosition-in-world: {4}",
+																	   latitudeLongitude.x, latitudeLongitude.y, location.Accuracy, location.Heading, position), "lightblue");
+
+					_synchronizationContext.AddSynchronizationNodes(location, position, _arPositionReference.localPosition);
+				}
+			}
+			else
+			{
+				//Store the received location position so we can issue an initial alignment when the map finishes loading.
+				Debug.Log("Map not yet loaded. Storing location until map finishes loading.");
+				_locationProvidedWhileLoading = location;
+				_locationUpdatePending = true;
 			}
 		}
 

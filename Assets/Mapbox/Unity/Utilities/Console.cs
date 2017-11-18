@@ -46,9 +46,12 @@ namespace Mapbox.Unity.Utilities
 			{
 				_log = "";
 			}
-			_log += string.Format("<color={0}>{1}</color>\n", color, log);
+            string newLogLine = string.Format("<color={0}>{1}</color>\n", color, log);
+            Debug.Log(newLogLine);
+            _log += newLogLine;
 			_logText.text = _log;
 			_logScroll.verticalNormalizedPosition = 0f;
+            
 		}
 
 
