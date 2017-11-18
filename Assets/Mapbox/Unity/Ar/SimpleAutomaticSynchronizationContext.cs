@@ -103,8 +103,8 @@
 				
 				//We have nothing to compare to. Trust GPS 100%.
 				var alignment = new Alignment();
-				alignment.Rotation = -1*location.Heading;
-				alignment.Position = -1*locationPosition;
+				alignment.Rotation = -1 * location.Heading;
+				alignment.Position = -1 * (Quaternion.Euler(0, -1*location.Heading, 0) * locationPosition);
 				Unity.Utilities.Console.Instance.Log("Sending Alignment (purely from GPS) with Rotation:" + alignment.Rotation + " Position:" + alignment.Position, "orange");
 				OnAlignmentAvailable(alignment);
 			}
